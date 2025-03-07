@@ -37,6 +37,7 @@ scrollFrame.Position = UDim2.new(0, 10, 0, 50)
 scrollFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 scrollFrame.ScrollBarThickness = 8
 roundCorner:Clone().Parent = scrollFrame
+scrollFrame.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Left
 
 -- Title
 local title = Instance.new("TextLabel", mainFrame)
@@ -148,51 +149,48 @@ jumpPowerTextBox.FocusLost:Connect(function()
     end
 end)
 
--- Main Loop for Features
+-- Main Loop for Features (Now just toggling on/off)
 runService.RenderStepped:Connect(function()
-    fly()
-    noclip()
-    esp()
-    speedHack()
-    jumpPower()
-    infiniteJump()
+    if flyEnabled then
+        fly()
+    end
+    if noclipEnabled then
+        noclip()
+    end
+    if espEnabled then
+        esp()
+    end
+    if speedHackEnabled then
+        speedHack()
+    end
+    if jumpPowerEnabled then
+        jumpPower()
+    end
+    if infiniteJumpEnabled then
+        infiniteJump()
+    end
 end)
 
 -- Fly Function
 local function fly()
-    if flyEnabled then
-        local humanoid = player.Character:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.PlatformStand = true
-            local bodyVelocity = player.Character:FindFirstChild("BodyVelocity")
-            if not bodyVelocity then
-                bodyVelocity = Instance.new("BodyVelocity", player.Character.HumanoidRootPart)
-                bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
-                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            end
-            bodyVelocity.Velocity = Vector3.new(mouse.Hit.lookVector.X * customSpeed, 0, mouse.Hit.lookVector.Z * customSpeed)
-        end
-    else
+    local humanoid = player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true
         local bodyVelocity = player.Character:FindFirstChild("BodyVelocity")
-        if bodyVelocity then
-            bodyVelocity:Destroy()
+        if not bodyVelocity then
+            bodyVelocity = Instance.new("BodyVelocity", player.Character.HumanoidRootPart)
+            bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
         end
+        bodyVelocity.Velocity = Vector3.new(mouse.Hit.lookVector.X * customSpeed, 0, mouse.Hit.lookVector.Z * customSpeed)
     end
 end
 
 -- Noclip Function
 local function noclip()
-    if noclipEnabled then
-        for _, part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    else
-        for _, part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
+    for _, part in pairs(player.Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = noclipEnabled
         end
     end
 end
@@ -208,25 +206,23 @@ local function esp()
                 table.insert(highlights, highlight)
             end
         end
+    else
+        -- Clean up ESP highlights when disabled
+        for _, highlight in pairs(highlights) do
+            highlight:Destroy()
+        end
+        highlights = {}
     end
 end
 
 -- Speed Hack Function
 local function speedHack()
-    if speedHackEnabled then
-        player.Character.Humanoid.WalkSpeed = customSpeed
-    else
-        player.Character.Humanoid.WalkSpeed = 16
-    end
+    player.Character.Humanoid.WalkSpeed = speedHackEnabled and customSpeed or 16
 end
 
 -- Jump Power Function
 local function jumpPower()
-    if jumpPowerEnabled then
-        player.Character.Humanoid.JumpPower = customJumpPower
-    else
-        player.Character.Humanoid.JumpPower = 50
-    end
+    player.Character.Humanoid.JumpPower = jumpPowerEnabled and customJumpPower or 50
 end
 
 -- Infinite Jump Function
