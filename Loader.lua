@@ -1,235 +1,254 @@
--- Variables
 local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
-local userInputService = game:GetService("UserInputService")
-local runService = game:GetService("RunService")
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-local mainFrame = Instance.new("Frame", gui)
-local scrollFrame = Instance.new("ScrollingFrame", mainFrame)
-local minimizeButton = Instance.new("ImageButton", gui)  -- Minimize button is now outside the mainFrame
-local roundCorner = Instance.new("UICorner")
-local flyEnabled = false
-local noclipEnabled = false
-local espEnabled = false
-local speedHackEnabled = false
-local jumpPowerEnabled = false
-local infiniteJumpEnabled = false
-local customSpeed = 50 -- Default speed value
-local customJumpPower = 100 -- Default jump power value
-local highlights = {} -- Store highlights for ESP cleanup
+local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+local mainFrame = Instance.new("Frame")
+local minimizeButton = Instance.new("TextButton")
+local button1 = Instance.new("TextButton")  -- Fly button
+local button2 = Instance.new("TextButton")  -- Noclip button
+local button3 = Instance.new("TextButton")  -- ESP button
+local titleLabel = Instance.new("TextLabel")
+local clockLabel = Instance.new("TextLabel")
 
--- GUI Setup
-gui.Name = "CustomGUI"
-gui.ResetOnSpawn = false
+-- Fly Variables
+local flying = false
+local flySpeed = 50
+local flyBodyVelocity
+local bodyGyro
+
+-- Noclip Variables
+local noclip = false
+
+-- ESP Variables
+local espEnabled = false
+
+-- UI Styling
+screenGui.Name = "AetherisHubGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player.PlayerGui
 
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 300, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Position = UDim2.new(0, 50, 0, 50)
 mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-mainFrame.Active = true
-mainFrame.Draggable = true  -- Make the frame draggable
-roundCorner.CornerRadius = UDim.new(0, 12)
-roundCorner.Parent = mainFrame
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 
-scrollFrame.Name = "ScrollFrame"
-scrollFrame.Size = UDim2.new(1, -20, 1, -60)
-scrollFrame.Position = UDim2.new(0, 10, 0, 50)
-scrollFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-scrollFrame.ScrollBarThickness = 8
-roundCorner:Clone().Parent = scrollFrame
-scrollFrame.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Left
-
--- Title
-local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "Aetheris Hub"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 24
-title.TextAlignment = Enum.TextAlignment.Center
-title.Font = Enum.Font.SourceSansBold
-
--- Minimize Button (Outside Frame)
 minimizeButton.Name = "MinimizeButton"
-minimizeButton.Size = UDim2.new(0, 30, 0, 30)
-minimizeButton.Position = UDim2.new(0.5, -15, 0, 10)  -- Positioning outside the frame at the top
-minimizeButton.Image = "http://www.roblox.com/asset/?id=108802284870895"
-minimizeButton.BackgroundTransparency = 1
-minimizeButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-end)
+minimizeButton.Size = UDim2.new(0, 100, 0, 100)
+minimizeButton.Position = UDim2.new(0, 10, 0, 10)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+minimizeButton.Text = "-"
+minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeButton.TextSize = 36
+minimizeButton.Parent = screenGui
 
--- Round Elements Function
-local function createRoundElement(className, parent, size, position, color)
-    local element = Instance.new(className, parent)
-    element.Size = size
-    element.Position = position
-    element.BackgroundColor3 = color
-    roundCorner:Clone().Parent = element
-    return element
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(0, 400, 0, 30)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Aetheris Hub"
+titleLabel.TextColor3 = Color3.fromRGB(0, 0, 255)
+titleLabel.TextSize = 24
+titleLabel.TextAlign = Enum.TextAnchor.MiddleCenter
+titleLabel.Parent = mainFrame
+
+clockLabel.Name = "ClockLabel"
+clockLabel.Size = UDim2.new(0, 200, 0, 30)
+clockLabel.Position = UDim2.new(0, 0, 1, -30)
+clockLabel.BackgroundTransparency = 1
+clockLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+clockLabel.TextSize = 18
+clockLabel.Text = ""
+clockLabel.Parent = mainFrame
+
+button1.Name = "Button1"  -- Fly Button
+button1.Size = UDim2.new(0, 100, 0, 50)
+button1.Position = UDim2.new(0, 10, 0, 40)
+button1.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+button1.Text = "Fly Off"
+button1.TextColor3 = Color3.fromRGB(255, 255, 255)
+button1.TextSize = 18
+button1.Parent = mainFrame
+
+button2.Name = "Button2"  -- Noclip Button
+button2.Size = UDim2.new(0, 100, 0, 50)
+button2.Position = UDim2.new(0, 120, 0, 40)
+button2.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+button2.Text = "Noclip Off"
+button2.TextColor3 = Color3.fromRGB(255, 255, 255)
+button2.TextSize = 18
+button2.Parent = mainFrame
+
+button3.Name = "Button3"  -- ESP Button
+button3.Size = UDim2.new(0, 100, 0, 50)
+button3.Position = UDim2.new(0, 230, 0, 40)
+button3.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+button3.Text = "ESP Off"
+button3.TextColor3 = Color3.fromRGB(255, 255, 255)
+button3.TextSize = 18
+button3.Parent = mainFrame
+
+-- Function to update clock
+local function updateClock()
+    local time = os.date("%I:%M:%S %p")
+    clockLabel.Text = "Clock: " .. time
 end
 
--- Add Buttons and Features (All white text and standard color)
-local features = {
-    {name = "Fly", color = Color3.fromRGB(255, 255, 255)},
-    {name = "Noclip", color = Color3.fromRGB(255, 255, 255)},
-    {name = "ESP", color = Color3.fromRGB(255, 255, 255)},
-    {name = "Speed Hack", color = Color3.fromRGB(255, 255, 255)},
-    {name = "Jump Power", color = Color3.fromRGB(255, 255, 255)},
-    {name = "Infinite Jump", color = Color3.fromRGB(255, 255, 255)}
-}
-
-local buttonHeight = 40
-local padding = 10
-
-for i, feature in ipairs(features) do
-    local button = createRoundElement("TextButton", scrollFrame, UDim2.new(1, -20, 0, buttonHeight), UDim2.new(0, 10, 0, (buttonHeight + padding) * (i - 1)), feature.color)
-    button.Text = feature.name
-    button.TextColor3 = Color3.new(1, 1, 1)  -- Set white text color
-    button.Font = Enum.Font.SourceSansBold
-    button.TextSize = 18
-    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)  -- Keep the button background dark
-
-    button.MouseButton1Click:Connect(function()
-        if feature.name == "Fly" then
-            flyEnabled = not flyEnabled
-            button.Text = flyEnabled and "Fly ✔" or "Fly"
-            button.BackgroundColor3 = flyEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(50, 50, 50)
-        elseif feature.name == "Noclip" then
-            noclipEnabled = not noclipEnabled
-            button.Text = noclipEnabled and "Noclip ✔" or "Noclip"
-            button.BackgroundColor3 = noclipEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(50, 50, 50)
-        elseif feature.name == "ESP" then
-            espEnabled = not espEnabled
-            button.Text = espEnabled and "ESP ✔" or "ESP"
-            button.BackgroundColor3 = espEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(50, 50, 50)
-        elseif feature.name == "Speed Hack" then
-            speedHackEnabled = not speedHackEnabled
-            button.Text = speedHackEnabled and "Speed Hack ✔" or "Speed Hack"
-            button.BackgroundColor3 = speedHackEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(50, 50, 50)
-        elseif feature.name == "Jump Power" then
-            jumpPowerEnabled = not jumpPowerEnabled
-            button.Text = jumpPowerEnabled and "Jump Power ✔" or "Jump Power"
-            button.BackgroundColor3 = jumpPowerEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(50, 50, 50)
-        elseif feature.name == "Infinite Jump" then
-            infiniteJumpEnabled = not infiniteJumpEnabled
-            button.Text = infiniteJumpEnabled and "Infinite Jump ✔" or "Infinite Jump"
-            button.BackgroundColor3 = infiniteJumpEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(50, 50, 50)
-        end
-    end)
+-- Toggle button colors and states
+local function toggleButtonColor(button, action)
+    if action == "on" then
+        button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        button.Text = button.Name .. " On"
+    else
+        button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        button.Text = button.Name .. " Off"
+    end
 end
-
--- Add TextBoxes for Custom Speed and Jump Power
-local speedTextBox = createRoundElement("TextBox", scrollFrame, UDim2.new(1, -20, 0, 30), UDim2.new(0, 10, 0, (buttonHeight + padding) * #features + padding), Color3.fromRGB(50, 50, 50))
-speedTextBox.PlaceholderText = "Enter Speed (Default: 50)"
-speedTextBox.TextColor3 = Color3.new(1, 1, 1)
-speedTextBox.Font = Enum.Font.SourceSans
-speedTextBox.TextSize = 16
-speedTextBox.FocusLost:Connect(function()
-    local newSpeed = tonumber(speedTextBox.Text)
-    if newSpeed and newSpeed > 0 then
-        customSpeed = newSpeed
-    else
-        speedTextBox.Text = "Invalid Speed"
-    end
-end)
-
-local jumpPowerTextBox = createRoundElement("TextBox", scrollFrame, UDim2.new(1, -20, 0, 30), UDim2.new(0, 10, 0, (buttonHeight + padding) * #features + padding + 40), Color3.fromRGB(50, 50, 50))
-jumpPowerTextBox.PlaceholderText = "Enter Jump Power (Default: 100)"
-jumpPowerTextBox.TextColor3 = Color3.new(1, 1, 1)
-jumpPowerTextBox.Font = Enum.Font.SourceSans
-jumpPowerTextBox.TextSize = 16
-jumpPowerTextBox.FocusLost:Connect(function()
-    local newJumpPower = tonumber(jumpPowerTextBox.Text)
-    if newJumpPower and newJumpPower > 0 then
-        customJumpPower = newJumpPower
-    else
-        jumpPowerTextBox.Text = "Invalid Jump Power"
-    end
-end)
-
--- Main Loop for Features (Now just toggling on/off)
-runService.RenderStepped:Connect(function()
-    if flyEnabled then
-        fly()
-    end
-    if noclipEnabled then
-        noclip()
-    end
-    if espEnabled then
-        esp()
-    end
-    if speedHackEnabled then
-        speedHack()
-    end
-    if jumpPowerEnabled then
-        jumpPower()
-    end
-    if infiniteJumpEnabled then
-        infiniteJump()
-    end
-end)
 
 -- Fly Function
-local function fly()
-    local humanoid = player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.PlatformStand = true
-        local bodyVelocity = player.Character:FindFirstChild("BodyVelocity")
-        if not bodyVelocity then
-            bodyVelocity = Instance.new("BodyVelocity", player.Character.HumanoidRootPart)
-            bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
-            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        end
-        bodyVelocity.Velocity = Vector3.new(mouse.Hit.lookVector.X * customSpeed, 0, mouse.Hit.lookVector.Z * customSpeed)
+local function startFlying()
+    flying = true
+    flyBodyVelocity = Instance.new("BodyVelocity")
+    flyBodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+    flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    flyBodyVelocity.Parent = player.Character.HumanoidRootPart
+
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
+    bodyGyro.CFrame = player.Character.HumanoidRootPart.CFrame
+    bodyGyro.Parent = player.Character.HumanoidRootPart
+
+    player.Character.Humanoid.PlatformStand = true
+end
+
+local function stopFlying()
+    flying = false
+    if flyBodyVelocity then
+        flyBodyVelocity:Destroy()
     end
+    if bodyGyro then
+        bodyGyro:Destroy()
+    end
+    player.Character.Humanoid.PlatformStand = false
 end
 
 -- Noclip Function
-local function noclip()
-    for _, part in pairs(player.Character:GetDescendants()) do
+local function toggleNoclip()
+    noclip = not noclip
+    for _, part in pairs(player.Character:GetChildren()) do
         if part:IsA("BasePart") then
-            part.CanCollide = noclipEnabled
+            part.CanCollide = not noclip
         end
     end
 end
 
 -- ESP Function
-local function esp()
+local function toggleESP()
+    espEnabled = not espEnabled
     if espEnabled then
-        for _, plr in pairs(game.Players:GetPlayers()) do
-            if plr ~= game.Players.LocalPlayer and plr.Character then
-                local highlight = Instance.new("Highlight", plr.Character)
-                highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                table.insert(highlights, highlight)
+        for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+            if otherPlayer ~= player then
+                local espPart = Instance.new("Part")
+                espPart.Size = Vector3.new(2, 2, 2)
+                espPart.Anchored = true
+                espPart.CanCollide = false
+                espPart.BrickColor = BrickColor.new("Bright red")
+                espPart.Material = Enum.Material.Neon
+                espPart.Parent = game.Workspace
+
+                local billboardGui = Instance.new("BillboardGui")
+                billboardGui.Parent = espPart
+                billboardGui.Adornee = espPart
+                billboardGui.Size = UDim2.new(0, 50, 0, 50)
+
+                local textLabel = Instance.new("TextLabel")
+                textLabel.Parent = billboardGui
+                textLabel.Text = otherPlayer.Name
+                textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                textLabel.BackgroundTransparency = 1
             end
         end
     else
-        -- Clean up ESP highlights when disabled
-        for _, highlight in pairs(highlights) do
-            highlight:Destroy()
+        for _, part in pairs(workspace:GetChildren()) do
+            if part:FindFirstChild("ESP_Tag") then
+                part:Destroy()
+            end
         end
-        highlights = {}
     end
 end
 
--- Speed Hack Function
-local function speedHack()
-    player.Character.Humanoid.WalkSpeed = speedHackEnabled and customSpeed or 16
-end
-
--- Jump Power Function
-local function jumpPower()
-    player.Character.Humanoid.JumpPower = jumpPowerEnabled and customJumpPower or 50
-end
-
--- Infinite Jump Function
-local function infiniteJump()
-    if infiniteJumpEnabled then
-        userInputService.JumpRequest:Connect(function()
-            player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end)
+-- Minimize/Restore the frame
+local frameMinimized = false
+minimizeButton.MouseButton1Click:Connect(function()
+    if frameMinimized then
+        mainFrame.Visible = true
+        minimizeButton.Text = "-"
+        frameMinimized = false
+    else
+        mainFrame.Visible = false
+        minimizeButton.Text = "+"
+        frameMinimized = true
     end
+end)
+
+-- Draggable frame and minimize button
+local function makeDraggable(frame, button)
+    local dragging, dragInput, mousePos, offset = false, nil, nil, nil
+
+    local function update(input)
+        local delta = input.Position - mousePos
+        frame.Position = UDim2.new(frame.Position.X.Scale, offset.X + delta.X, frame.Position.Y.Scale, offset.Y + delta.Y)
+    end
+
+    local function inputBegan(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            mousePos = input.Position
+            offset = Vector2.new(frame.Position.X.Offset, frame.Position.Y.Offset)
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end
+
+    local function inputChanged(input)
+        if dragging then
+            update(input)
+        end
+    end
+
+    button.InputBegan:Connect(inputBegan)
+    button.InputChanged:Connect(inputChanged)
+    frame.InputBegan:Connect(inputBegan)
+    frame.InputChanged:Connect(inputChanged)
+end
+
+makeDraggable(mainFrame, minimizeButton)
+
+-- Button functionality for Fly, Noclip, and ESP
+button1.MouseButton1Click:Connect(function()
+    if flying then
+        stopFlying()
+        toggleButtonColor(button1, "off")
+    else
+        startFlying()
+        toggleButtonColor(button1, "on")
+    end
+end)
+
+button2.MouseButton1Click:Connect(function()
+    toggleNoclip()
+    toggleButtonColor(button2, noclip and "on" or "off")
+end)
+
+button3.MouseButton1Click:Connect(function()
+    toggleESP()
+    toggleButtonColor(button3, espEnabled and "on" or "off")
+end)
+
+-- Update the clock every second
+while true do
+    updateClock()
+    wait(1)
 end
